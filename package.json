@@ -1,8 +1,0 @@
-{
-    "name": "tokens-me",
-    "version": "1.0.0",
-    "description": "Aplicación de geolocalización y seguimiento",
-    "dependencies": {
-      "@supabase/supabase-js": "^2.21.0"
-    }
-  }
