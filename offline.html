@@ -1,0 +1,239 @@
+
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sin Conexión - Tokens.ME</title>
+    <style>
+        :root {
+            --color-primary: #145DA0;
+            --color-primary-dark: #0C2D48;
+            --color-accent: #00f0ff;
+            --color-bg: linear-gradient(135deg, #0c2d48 0%, #2c3e50 100%);
+            --color-text: #333;
+            --color-text-light: #777;
+            --color-card-bg: #fff;
+            --color-card-shadow: rgba(0, 0, 0, 0.1);
+        }
+        
+        [data-theme="dark"] {
+            --color-primary: #2a80c5;
+            --color-primary-dark: #1a5b8c;
+            --color-accent: #00f0ff;
+            --color-bg: linear-gradient(135deg, #121212 0%, #1e1e1e 100%);
+            --color-text: #e0e0e0;
+            --color-text-light: #aaa;
+            --color-card-bg: #2a2a2a;
+            --color-card-shadow: rgba(0, 0, 0, 0.3);
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: var(--color-bg);
+            background-attachment: fixed;
+            color: var(--color-text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .offline-container {
+            width: 90%;
+            max-width: 500px;
+            background-color: var(--color-card-bg);
+            border-radius: 15px;
+            box-shadow: 0 15px 35px var(--color-card-shadow);
+            overflow: hidden;
+            text-align: center;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        .offline-header {
+            background: linear-gradient(to right, var(--color-primary), var(--color-primary-dark));
+            color: white;
+            padding: 20px;
+            position: relative;
+        }
+        
+        .offline-header h1 {
+            font-size: 32px;
+            margin: 0;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: var(--color-accent);
+            text-shadow: 0 0 10px var(--color-accent);
+        }
+        
+        .offline-content {
+            padding: 30px;
+        }
+        
+        .offline-icon {
+            font-size: 60px;
+            margin: 20px 0;
+            animation: pulse 2s infinite alternate;
+        }
+        
+        .offline-content h2 {
+            color: var(--color-primary);
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+        
+        .offline-content p {
+            color: var(--color-text);
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 12px 25px;
+            background: linear-gradient(to right, var(--color-primary), var(--color-primary-dark));
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            font-weight: 600;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .offline-footer {
+            margin-top: 30px;
+            color: var(--color-text-light);
+            font-size: 14px;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.8; transform: scale(0.95); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        
+        /* Detección automática de tema basado en preferencia del sistema */
+        @media (prefers-color-scheme: dark) {
+            body:not([data-theme]) {
+                --color-primary: #2a80c5;
+                --color-primary-dark: #1a5b8c;
+                --color-accent: #00f0ff;
+                --color-bg: linear-gradient(135deg, #121212 0%, #1e1e1e 100%);
+                --color-text: #e0e0e0;
+                --color-text-light: #aaa;
+                --color-card-bg: #2a2a2a;
+                --color-card-shadow: rgba(0, 0, 0, 0.3);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <div class="offline-header">
+            <h1>Tokens.ME</h1>
+        </div>
+        <div class="offline-content">
+            <div class="offline-icon">📡</div>
+            <h2>Sin Conexión a Internet</h2>
+            <p>No se ha podido establecer conexión con el servidor. Estás navegando en modo offline.</p>
+            <p>Algunas funciones pueden no estar disponibles hasta que se restablezca la conexión.</p>
+            
+            <button id="retry-connection" class="btn">Reintentar Conexión</button>
+            
+            <div class="offline-data">
+                <h3 style="margin-top: 30px; color: var(--color-primary);">Datos Disponibles sin Conexión</h3>
+                <div id="offline-saved-locations">
+                    <p style="font-style: italic; color: var(--color-text-light);">Verificando datos guardados...</p>
+                </div>
+            </div>
+            
+            <div class="offline-footer">
+                <p>Tokens.ME &copy; 2025 - Modo Offline</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Script mínimo para la página offline
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verificar preferencia de tema
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                document.documentElement.setAttribute('data-theme', savedTheme);
+            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+            
+            // Botón para reintentar conexión
+            document.getElementById('retry-connection').addEventListener('click', function() {
+                window.location.reload();
+            });
+            
+            // Mostrar datos guardados
+            const offlineDataContainer = document.getElementById('offline-saved-locations');
+            
+            try {
+                // Verificar datos de ubicaciones guardadas
+                const savedData = localStorage.getItem('trackingEntries');
+                
+                if (savedData) {
+                    const entries = JSON.parse(savedData);
+                    
+                    if (entries.length > 0) {
+                        let html = '<ul style="list-style: none; padding: 0; text-align: left;">';
+                        
+                        // Mostrar solo las 5 ubicaciones más recientes
+                        const recentEntries = entries.sort((a, b) => 
+                            new Date(b.timestamp) - new Date(a.timestamp)
+                        ).slice(0, 5);
+                        
+                        recentEntries.forEach(entry => {
+                            const date = new Date(entry.timestamp).toLocaleDateString();
+                            html += `
+                                <li style="background-color: rgba(0,0,0,0.05); margin-bottom: 8px; padding: 10px; border-radius: 8px;">
+                                    <strong>${entry.name}</strong>
+                                    <div>Ubicación: ${entry.latitude.toFixed(6)}, ${entry.longitude.toFixed(6)}</div>
+                                    <div style="font-size: 12px; color: var(--color-text-light);">Recibido: ${date}</div>
+                                </li>
+                            `;
+                        });
+                        
+                        html += '</ul>';
+                        
+                        if (entries.length > 5) {
+                            html += `<p style="font-size: 13px; color: var(--color-text-light);">Mostrando 5 de ${entries.length} ubicaciones guardadas</p>`;
+                        }
+                        
+                        offlineDataContainer.innerHTML = html;
+                    } else {
+                        offlineDataContainer.innerHTML = '<p>No hay ubicaciones guardadas disponibles.</p>';
+                    }
+                } else {
+                    offlineDataContainer.innerHTML = '<p>No hay datos guardados para mostrar en modo offline.</p>';
+                }
+            } catch (e) {
+                console.error('Error al cargar datos offline:', e);
+                offlineDataContainer.innerHTML = '<p>Error al cargar datos guardados.</p>';
+            }
+        });
+    </script>
+</body>
+</html>
