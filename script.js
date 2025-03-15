@@ -3,6 +3,164 @@
 
 // 1. Mejora de seguridad - Almacenar usuarios en formato más seguro
 // En lugar de tener los usuarios hardcodeados, podríamos usar un hash + salt
+
+
+// API URL base
+const API_BASE_URL = '/.netlify/functions';
+
+// Funciones para API
+async function apiLogin(username, password) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'login',
+        username,
+        password
+      })
+    });
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error en apiLogin:', error);
+    return { error: 'Error de conexión' };
+  }
+}
+
+async function apiSaveLocation(locationData) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/locations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(locationData)
+    });
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error en apiSaveLocation:', error);
+    return { error: 'Error al guardar ubicación' };
+  }
+}
+
+async function apiGetLocations() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/locations`);
+    const data = await response.json();
+    return data.locations || [];
+  } catch (error) {
+    console.error('Error en apiGetLocations:', error);
+    return [];
+  }
+}
+
+async function apiCreateTrackingLink(linkData) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/links`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(linkData)
+    });
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error en apiCreateTrackingLink:', error);
+    return { error: 'Error al crear enlace' };
+  }
+}
+
+// Modificar la función de login existente
+loginBtn.addEventListener('click', async () => {
+  const username = document.getElementById('username').value;
+  const password = document.getElementById('password').value;
+  
+  // Primero intentar login a través de la API
+  const result = await apiLogin(username, password);
+  
+  if (result.user) {
+    currentUser = result.user;
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    
+    authContainer.style.display = 'none';
+    appContainer.style.display = 'block';
+    currentUserSpan.textContent = currentUser.username;
+    
+    // Cargar ubicaciones desde la API
+    const locations = await apiGetLocations();
+    trackingEntries = locations;
+    
+    // Actualizar UI
+    renderTrackingEntries();
+    initializeMap();
+    
+    showNotification(`Bienvenido ${currentUser.username}! Ahora puedes gestionar ubicaciones.`);
+  } else {
+    // Fallback a la validación local si la API falla
+    const localUser = users.find(u => u.username === username && u.password === password);
+    
+    if (localUser) {
+      currentUser = localUser;
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+      
+      authContainer.style.display = 'none';
+      appContainer.style.display = 'block';
+      currentUserSpan.textContent = localUser.username;
+      
+      // Cargar ubicaciones guardadas del localStorage
+      loadSavedTrackingData();
+      
+      initializeMap();
+      
+      showNotification(`Bienvenido ${localUser.username}! (Modo Offline)`);
+    } else {
+      showNotification('Usuario o contraseña incorrectos', 'error');
+    }
+  }
+});
+
+// Modificar sendLocationToServer
+function sendLocationToServer(data) {
+  // Primero intentar enviar a la API
+  apiSaveLocation(data).then(result => {
+    if (result.error) {
+      console.error("Error al enviar datos a la API:", result.error);
+      // Guardar en localStorage como fallback
+      saveToLocalStorage(data);
+    } else {
+      console.log("Datos enviados correctamente a la API");
+    }
+  }).catch(error => {
+    console.error("Error de conexión:", error);
+    // Guardar en localStorage como fallback
+    saveToLocalStorage(data);
+  });
+  
+  // Función auxiliar para guardar en localStorage
+  function saveToLocalStorage(data) {
+    try {
+      let savedData = localStorage.getItem('trackingEntries');
+      let entries = savedData ? JSON.parse(savedData) : [];
+      entries.push(data);
+      localStorage.setItem('trackingEntries', JSON.stringify(entries));
+      console.log("Datos guardados localmente");
+      
+      // Marcar para sincronización posterior
+      const pendingSync = localStorage.getItem('pendingSync');
+      const pendingData = pendingSync ? JSON.parse(pendingSync) : [];
+      pendingData.push(data);
+      localStorage.setItem('pendingSync', JSON.stringify(pendingData));
+    } catch (error) {
+      console.error("Error al guardar datos:", error);
+    }
+  }
+}
+
 const users = [
     { 
         username: 'Admin', 
